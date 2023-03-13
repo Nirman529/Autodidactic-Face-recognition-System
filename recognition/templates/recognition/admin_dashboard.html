@@ -115,53 +115,67 @@
             </style>
 
             <div class="row">
-                <div class="col-md-3">
-                    <a href="{%url 'register' %}"
-                        ><img
-                            src="{% static 'recognition/img/register.png' %}"
-                            class="img-responsive"
-                            style="width: 300px; height: 300px"
-                    /></a>
+                <div class="col-md-4">
+                    <div class="row">
+                        <a href="{%url 'register' %}"
+                            ><img
+                                src="{% static 'recognition/img/register.png' %}"
+                                class="img-responsive"
+                                style="width: 300px; height: 300px"
+                        /></a>
+                    </div>
+                    <div class="row">
+                        <div class="col md-4">
+                            <h4 class="text-center att">
+                                Register New Employees
+                            </h4>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <a href="{%url 'add-photos'%}"
-                        ><img
-                            src="{% static 'recognition/img/addphotos.png' %}"
-                            class="img-responsive"
-                            style="width: 300px; height: 300px"
-                    /></a>
+                <div class="col-md-4">
+                    <div class="row">
+                        <a href="{%url 'add-photos'%}"
+                            ><img
+                                src="{% static 'recognition/img/addphotos.png' %}"
+                                class="img-responsive"
+                                style="width: 300px; height: 300px"
+                        /></a>
+                    </div>
+                    <div class="row">
+                        <div class="col md-4">
+                            <h4 class="text-center att">Add Photos</h4>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <a href="{%url 'train' %}" id="train"
-                        ><img
-                            src="{% static 'recognition/img/train.jpeg' %}"
-                            class="img-responsive"
-                            style="width: 300px; height: 300px"
-                    /></a>
+                <div class="col-md-4">
+                    <div class="row">
+                        <a href="{%url 'train' %}" id="train"
+                            ><img
+                                src="{% static 'recognition/img/train.jpeg' %}"
+                                class="img-responsive"
+                                style="width: 300px; height: 300px"
+                        /></a>
+                    </div>
+                    <div class="row">
+                        <div class="col md-4">
+                            <h4 class="text-center att">Train</h4>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-3">
+                <!-- <div class="col-md-3">
                     <a href="{%url 'view-attendance-home' %}"
                         ><img
                             src="{% static 'recognition/img/reports.png' %}"
                             class="img-responsive"
                             style="width: 300px; height: 300px"
                     /></a>
-                </div>
+                </div> -->
             </div>
-            <div class="row">
-                <div class="col md-3">
-                    <h4 class="text-center att">Register New Employees</h4>
-                </div>
-                <div class="col md-3">
-                    <h4 class="text-center att">Add Photos</h4>
-                </div>
-                <div class="col md-3">
-                    <h4 class="text-center att">Train</h4>
-                </div>
-                <div class="col md-3">
+            <!-- <div class="row"> -->
+            <!-- <div class="col md-3">
                     <h4 class="text-center lgn">View Attendance Reports</h4>
-                </div>
-            </div>
+                </div> -->
+            <!-- </div> -->
 
             {% if messages %} {% for message in messages%}
             <div class="alert alert-{{message.tags}}">{{message}}</div>
