@@ -136,8 +136,8 @@ def create_dataset(username):
 def predict(face_aligned, svc, threshold=0.7):
     face_encodings = np.zeros((1, 128))
     try:
-        x_face_locations = frs_face_recognition.face_locations(face_aligned)
-        faces_encodings = frs_face_recognition.face_encodings(
+        x_face_locations = face_recognition.face_locations(face_aligned)
+        faces_encodings = face_recognition.face_encodings(
             face_aligned, known_face_locations=x_face_locations)
         if(len(faces_encodings) == 0):
             return ([-1], [0])
@@ -744,7 +744,7 @@ def train(request):
             image = cv2.imread(imagefile)
             try:
                 X.append(
-                    (frs_face_recognition.face_encodings(image)[0]).tolist())
+                    (face_recognition.face_encodings(image)[0]).tolist())
 
                 y.append(person_name)
                 i += 1
