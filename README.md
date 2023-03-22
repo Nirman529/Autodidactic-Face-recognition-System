@@ -28,4 +28,4 @@
 
 ### Classification of Unknown Embedding
 
--   using a Linear SVM (scikit-learn)
+-   using a Linear Support Vector Machine (scikit-learn)

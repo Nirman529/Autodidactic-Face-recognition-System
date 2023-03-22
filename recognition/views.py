@@ -15,6 +15,7 @@ import os
 import face_recognition
 from face_recognition.face_recognition_cli import image_files_in_folder
 import pickle
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -715,6 +716,11 @@ def mark_your_attendance_out(request):
     return redirect('home')
 
 
+'''
+Train svm model and generate sav file to call later on attendance in and out
+'''
+
+
 @login_required
 def train(request):
     if request.user.username != 'admin':
@@ -757,15 +763,19 @@ def train(request):
     encoder.fit(y)
     y = encoder.transform(y)
     X1 = np.array(X)
+    # splitting dataset for train and test purpose
+    x_train, x_test, y_train, y_test = train_test_split(
+        X1, y, test_size=0.2, random_state=4, stratify=y)
+
     print("shape: " + str(X1.shape))
     np.save('face_recognition_data/classes.npy', encoder.classes_)
     svc = SVC(kernel='linear', probability=True)
-    svc.fit(X1, y)
+    svc.fit(x_train, y_train)
     svc_save_path = "face_recognition_data/svc.sav"
     with open(svc_save_path, 'wb') as f:
         pickle.dump(svc, f)
 
-    vizualize_Data(X1, targets)
+    vizualize_Data(x_train, targets)
 
     messages.success(request, f'Training Complete.')
 
