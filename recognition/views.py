@@ -1,7 +1,8 @@
-from django.shortcuts import render, redirect
 from .forms import usernameForm, DateForm, UsernameAndDateForm, DateForm_2
+from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.db.models import Count
 import cv2
 import dlib
 import imutils
@@ -15,26 +16,39 @@ import os
 import face_recognition
 from face_recognition.face_recognition_cli import image_files_in_folder
 import pickle
+from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
+from sklearn.manifold import TSNE
 import numpy as np
 from django.contrib.auth.decorators import login_required
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
 import datetime
 from django_pandas.io import read_frame
 from users.models import Present, Time
 import seaborn as sns
 import pandas as pd
-from django.db.models import Count
 # import mpld3
 import matplotlib.pyplot as plt
 from pandas.plotting import register_matplotlib_converters
 from matplotlib import rcParams
 import math
+
+
+import random
+import keras
+
+from matplotlib.pyplot import imshow
+
+from keras.preprocessing import image
+from keras.applications.imagenet_utils import preprocess_input
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Flatten, Activation
+from keras.layers import Conv2D, MaxPooling2D
+from keras.models import Model
 
 mpl.use('Agg')
 
@@ -58,7 +72,6 @@ def create_dataset(username):
 
     print("[INFO] Loading the facial detector")
     detector = dlib.get_frontal_face_detector()
-    # Add path to the shape predictor ######CHANGE TO RELATIVE PATH LATER
     predictor = dlib.shape_predictor(
         'face_recognition_data/shape_predictor_68_face_landmarks.dat')
     fa = FaceAligner(predictor, desiredFaceWidth=96)
@@ -66,7 +79,6 @@ def create_dataset(username):
     # Initialize the video stream
     print("[INFO] Initializing Video stream")
     vs = VideoStream(src=0).start()
-    #time.sleep(2.0) ####CHECK######
 
     # Our identifier
     # We will put the id here and we will store the id with a face, so that later we can identify whose face it is
@@ -98,33 +110,24 @@ def create_dataset(username):
             # Before capturing the face, we need to tell the script whose face it is
             # For that we will need an identifier, here we call it id
             # So now we captured a face, we need to write it in a file
-            sampleNum = sampleNum+1
+            sampleNum = sampleNum + 1
             # Saving the image dataset, but only the face part, cropping the rest
 
             if face is None:
-                print("face is none")
+                print("No face detected")
                 continue
 
             cv2.imwrite(directory+'/'+str(sampleNum)+'.jpg'	, face_aligned)
             face_aligned = imutils.resize(face_aligned, width=400)
-            # cv2.imshow("Image Captured",face_aligned)
-            # @params the initial point of the rectangle will be x,y and
-            # @params end point will be x+width and y+height
-            # @params along with color of the rectangle
-            # @params thickness of the rectangle
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 1)
-            # Before continuing to the next loop, I want to give it a little pause
-            # waitKey of 100 millisecond
             cv2.waitKey(50)
 
-        # Showing the image in another window
-        # Creates a window with window name "Face" and with the image img
         cv2.imshow("Add Images", frame)
         # Before closing it we need to give a wait command, otherwise the open cv wont work
-        # @params with the millisecond of delay 1
+
         cv2.waitKey(1)
         # To get out of the loop
-        if(sampleNum > 300):
+        if(sampleNum >= 300):
             break
 
     # Stoping the videostream
@@ -775,9 +778,15 @@ def train(request):
     with open(svc_save_path, 'wb') as f:
         pickle.dump(svc, f)
 
-    vizualize_Data(x_train, targets)
+    # vizualize_Data(x_train, targets)
 
     messages.success(request, f'Training Complete.')
+
+    y_pred = svc.predict(x_test)
+    print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+    messages.success(request, f'Testing Complete.')
+
+    print("testing finish")
 
     return render(request, "recognition/train.html")
 
