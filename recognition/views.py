@@ -1,3 +1,10 @@
+import random
+import keras
+import splitfolders
+from glob import glob
+from keras.preprocessing.image import ImageDataGenerator
+from keras.applications.vgg16 import preprocess_input
+from keras.applications.vgg16 import VGG16
 from .forms import usernameForm, DateForm, UsernameAndDateForm, DateForm_2
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -38,10 +45,7 @@ from matplotlib import rcParams
 import math
 
 
-import random
-import keras
-
-from matplotlib.pyplot import imshow
+# from matplotlib.pyplot import imshow
 
 from keras.preprocessing import image
 from keras.applications.imagenet_utils import preprocess_input
@@ -49,6 +53,9 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, Activation
 from keras.layers import Conv2D, MaxPooling2D
 from keras.models import Model
+from keras.layers import Input, Lambda, Dense, Flatten
+from keras.models import Model
+
 
 mpl.use('Agg')
 
@@ -156,6 +163,21 @@ def predict(face_aligned, svc, threshold=0.7):
         return ([-1], prob[0][result[0]])
 
     return (result[0], prob[0][result[0]])
+
+def plot_transfer(r):
+    plt.plot(r.history['loss'], label='train loss')
+    plt.plot(r.history['val_loss'], label='val loss')
+    plt.legend(bbox_to_anchor=(1, 1))
+    plt.show()
+    plt.savefig('LossVal_loss')
+
+    # accuracies
+    plt.plot(r.history['acc'], label='train acc')
+    plt.plot(r.history['val_acc'], label='val acc')
+    plt.legend(bbox_to_anchor=(1, 1))
+    plt.show()
+    plt.savefig('./recognition/static/recognition/img/training_visualisation.png')
+    plt.close()
 
 
 def vizualize_Data(embedded, targets,):
@@ -721,6 +743,8 @@ def mark_your_attendance_out(request):
 
 '''
 Train svm model and generate sav file to call later on attendance in and out
+X -> image
+y -> lable or class
 '''
 
 
@@ -742,7 +766,13 @@ def train(request):
     X = []
     y = []
     i = 0
+    splitfolders.ratio(training_dir, output="face_recognition_data/data", seed=1337, ratio=(.8, .1, .1),
+                       group_prefix=None)
 
+    '''
+    SVM implementation
+
+    
     for person_name in os.listdir(training_dir):
         print(str(person_name))
         curr_directory = os.path.join(training_dir, person_name)
@@ -750,17 +780,16 @@ def train(request):
             continue
         for imagefile in image_files_in_folder(curr_directory):
             print(str(imagefile))
-            image = cv2.imread(imagefile)
+            # image = cv2.imread(imagefile)
             try:
-                X.append(
-                    (face_recognition.face_encodings(image)[0]).tolist())
+                # X.append(
+                #     (face_recognition.face_encodings(image)[0]).tolist())
 
                 y.append(person_name)
                 i += 1
             except:
                 print("removed")
                 os.remove(imagefile)
-
     targets = np.array(y)
     encoder = LabelEncoder()
     encoder.fit(y)
@@ -772,19 +801,96 @@ def train(request):
 
     print("shape: " + str(X1.shape))
     np.save('face_recognition_data/classes.npy', encoder.classes_)
+
+    
+
     svc = SVC(kernel='linear', probability=True)
     svc.fit(x_train, y_train)
     svc_save_path = "face_recognition_data/svc.sav"
     with open(svc_save_path, 'wb') as f:
         pickle.dump(svc, f)
+    vizualize_Data(x_train, targets)
+    # y_pred = svc.predict(x_test)
+    # print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+    # messages.success(request, f'Testing Complete.')
+    '''
 
-    # vizualize_Data(x_train, targets)
+    '''
+    # transfer learning start
+    
+    '''
+    # add preprocessing layer to the front of VGG
+    # vgg = VGG16(input_shape=IMAGE_SIZE + [3],
+    IMAGE_SIZE = [224, 224]
+    vgg = VGG16(input_shape=IMAGE_SIZE + [3], weights='imagenet', include_top=False)
+
+    # vgg = VGG16(weights='imagenet', include_top=False)    #temp temp
+
+    # don't train existing weights
+    for layer in vgg.layers:
+        layer.trainable = False
+
+        # useful for getting number of classes
+    folders = glob('face_recognition_data/data/train/*')
+    print('folders::',folders,'\n\nlen: ',len(folders),'\n')
+    # our layers - you can add more if you want
+    x = Flatten()(vgg.output)
+    # x = Dense(1000, activation='relu')(x)
+    prediction = Dense(len(folders), activation='softmax')(x)
+
+    # create a model object
+    model = Model(inputs=vgg.input, outputs=prediction)
+
+    # view the structure of the model
+    model.summary()
+
+    # tell the model what cost and optimization method to use
+    model.compile(
+        loss='categorical_crossentropy',
+        optimizer='adam',
+        metrics=['accuracy']
+    )
+
+    train_datagen = ImageDataGenerator(rescale=1./255,
+                                       shear_range=0.2,
+                                       zoom_range=0.2,
+                                       horizontal_flip=True)
+
+    test_datagen = ImageDataGenerator(rescale=1./255)
+
+    training_set = train_datagen.flow_from_directory('face_recognition_data/data/train',
+                                                     target_size=(224, 224),
+                                                     batch_size=32,
+                                                     class_mode='categorical')
+
+    test_set = test_datagen.flow_from_directory('face_recognition_data/data/test',
+                                                target_size=(224, 224),
+                                                batch_size=32,
+                                                class_mode='categorical')
+
+    '''r=model.fit_generator(training_set,
+                             samples_per_epoch = 8000,
+                             nb_epoch = 5,
+                             validation_data = test_set,
+                             nb_val_samples = 2000)'''
+
+    # fit the model
+    svc = model.fit(
+        training_set,
+        validation_data=test_set,
+        epochs=5,
+        steps_per_epoch=len(training_set),
+        validation_steps=len(test_set)
+    )
+    model.save('facefeatures_new_model.h5')
+
+    plot_transfer(svc)
+
+    # transfer learning end
+
 
     messages.success(request, f'Training Complete.')
 
-    y_pred = svc.predict(x_test)
-    print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-    messages.success(request, f'Testing Complete.')
 
     print("testing finish")
 
