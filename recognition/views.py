@@ -165,17 +165,18 @@ def predict(face_aligned, svc, threshold=0.7):
     return (result[0], prob[0][result[0]])
 
 def plot_transfer(r):
+    print(r.history)
     plt.plot(r.history['loss'], label='train loss')
     plt.plot(r.history['val_loss'], label='val loss')
     plt.legend(bbox_to_anchor=(1, 1))
-    plt.show()
-    plt.savefig('LossVal_loss')
+    # plt.show()
+    plt.savefig('./recognition/static/recognition/img/LossVal_loss')
 
     # accuracies
-    plt.plot(r.history['acc'], label='train acc')
-    plt.plot(r.history['val_acc'], label='val acc')
+    plt.plot(r.history['accuracy'], label='training accuracy')
+    plt.plot(r.history['val_accuracy'], label='validation accuracy')
     plt.legend(bbox_to_anchor=(1, 1))
-    plt.show()
+    # plt.show()
     plt.savefig('./recognition/static/recognition/img/training_visualisation.png')
     plt.close()
 
@@ -771,8 +772,7 @@ def train(request):
 
     '''
     SVM implementation
-
-    
+    '''
     for person_name in os.listdir(training_dir):
         print(str(person_name))
         curr_directory = os.path.join(training_dir, person_name)
@@ -780,16 +780,17 @@ def train(request):
             continue
         for imagefile in image_files_in_folder(curr_directory):
             print(str(imagefile))
-            # image = cv2.imread(imagefile)
+            image = cv2.imread(imagefile)
             try:
-                # X.append(
-                #     (face_recognition.face_encodings(image)[0]).tolist())
+                X.append(
+                    (face_recognition.face_encodings(image)[0]).tolist())
 
                 y.append(person_name)
                 i += 1
             except:
                 print("removed")
                 os.remove(imagefile)
+                
     targets = np.array(y)
     encoder = LabelEncoder()
     encoder.fit(y)
@@ -799,26 +800,30 @@ def train(request):
     x_train, x_test, y_train, y_test = train_test_split(
         X1, y, test_size=0.2, random_state=4, stratify=y)
 
+    tar = np.array(y_train)
     print("shape: " + str(X1.shape))
     np.save('face_recognition_data/classes.npy', encoder.classes_)
-
-    
 
     svc = SVC(kernel='linear', probability=True)
     svc.fit(x_train, y_train)
     svc_save_path = "face_recognition_data/svc.sav"
     with open(svc_save_path, 'wb') as f:
         pickle.dump(svc, f)
-    vizualize_Data(x_train, targets)
-    # y_pred = svc.predict(x_test)
-    # print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-    # messages.success(request, f'Testing Complete.')
+
+
+    vizualize_Data(x_train, tar)
+    y_pred = svc.predict(x_test)
+    print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+    messages.success(request, f'Testing Complete.')
     '''
+    '''
+    
+    
 
     '''
     # transfer learning start
     
-    '''
+    
     # add preprocessing layer to the front of VGG
     # vgg = VGG16(input_shape=IMAGE_SIZE + [3],
     IMAGE_SIZE = [224, 224]
@@ -868,12 +873,6 @@ def train(request):
                                                 batch_size=32,
                                                 class_mode='categorical')
 
-    '''r=model.fit_generator(training_set,
-                             samples_per_epoch = 8000,
-                             nb_epoch = 5,
-                             validation_data = test_set,
-                             nb_val_samples = 2000)'''
-
     # fit the model
     svc = model.fit(
         training_set,
@@ -882,11 +881,18 @@ def train(request):
         steps_per_epoch=len(training_set),
         validation_steps=len(test_set)
     )
-    model.save('facefeatures_new_model.h5')
+
+    svc_save_path = "face_recognition_data/svc.sav"
+    with open(svc_save_path, 'wb') as f:
+        pickle.dump(svc, f)
+
+    # model.save('facefeatures_new_model.h5')
 
     plot_transfer(svc)
 
     # transfer learning end
+    '''
+    
 
 
     messages.success(request, f'Training Complete.')

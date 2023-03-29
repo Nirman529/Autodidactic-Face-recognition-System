@@ -34,7 +34,6 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'recognition.apps.RecognitionConfig',
     'crispy_forms',
-    # dependency of bootstrap4 so we add the below line for no conflict in dependency
     'crispy_bootstrap4',
     'django.contrib.admin',
     'django.contrib.auth',
